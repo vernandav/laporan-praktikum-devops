@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Politeknik Elektronika Negeri Surabaya (PENS)</strong><br>
-  Dokumentasi laporan praktikum DevOps yang disusun dalam format Markdown
+  Dokumentasi laporan praktikum DevOps
 </p>
 
 <p align="center">
@@ -32,29 +32,6 @@
 
 ---
 
-## 🗂️ Struktur Repository
-
-```
-laporan-praktikum-devops/
-├── README.md
-├── .gitignore
-├── laporan/
-│   ├── bab-01-fondasi-teoretis-devsecops.md
-│   ├── bab-02-konsep-container-instalasi-docker.md
-│   ├── bab-03-docker-network-volume-compose.md
-│   ├── bab-04-nginx-apache-tls-docker-compose.md
-│   └── bab-05-postgresql-pgadmin-volume-backup-restore.md
-└── assets/
-    ├── logo-pens.png
-    ├── bab-01/
-    ├── bab-02/
-    ├── bab-03/
-    ├── bab-04/
-    └── bab-05/
-```
-
----
-
 ## 🛠️ Teknologi
 
 | Teknologi | Deskripsi |
@@ -66,19 +43,6 @@ laporan-praktikum-devops/
 | **pgAdmin** | Alat administrasi dan manajemen PostgreSQL berbasis web |
 | **Git & GitHub** | Sistem kontrol versi dan platform kolaborasi kode |
 | **Markdown** | Format penulisan dokumentasi laporan |
-
----
-
-## 📝 Isi Dokumentasi
-
-Setiap laporan berisi penjelasan mengenai:
-
-- ✅ **Lingkungan Kerja** — Spesifikasi VM, sistem operasi, dan tools yang digunakan
-- ✅ **Langkah Kerja** — Perintah terminal yang dijalankan beserta penjelasannya
-- ✅ **Konfigurasi** — File konfigurasi yang digunakan (Docker Compose, NGINX, dll.)
-- ✅ **Bukti Pelaksanaan** — Screenshot terminal dan hasil eksekusi
-- ✅ **Hasil Pengujian** — Verifikasi dan skenario pengujian
-- ✅ **Evaluasi** — Analisis, kesimpulan, dan jawaban latihan mandiri
 
 ---
 
