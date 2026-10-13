@@ -1,0 +1,27 @@
+# Environment dan kredensial
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Cache dan file sementara
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+Thumbs.db
+
+# Folder virtual environment Python
+.venv/
+venv/
+
+# File sementara editor
+.vscode/settings.json
+.vscode/launch.json
+
+# File backup dan temporary
+*.tmp
+*.bak
+*.swp
+*~
