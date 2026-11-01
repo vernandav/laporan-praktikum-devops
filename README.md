@@ -15,6 +15,8 @@
   <img src="https://img.shields.io/badge/NGINX-009639?style=for-the-badge&logo=nginx&logoColor=white" alt="NGINX">
   <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white" alt="Git">
   <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Fluent_Bit-4053D6?style=for-the-badge&logo=fluentbit&logoColor=white" alt="Fluent Bit">
+  <img src="https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana">
 </p>
 
 ---
@@ -28,6 +30,7 @@
 | 3 | Docker Network, Volume, Bind Mount, Tmpfs dan Compose | [📄 Buka Laporan](laporan/bab-03-docker-network-volume-compose.md) |
 | 4 | Nginx, Apache, Flask, dan TLS dengan Docker Compose | [📄 Buka Laporan](laporan/bab-04-nginx-apache-tls-docker-compose.md) |
 | 5 | PostgreSQL, pgAdmin, Volume, Backup, dan Restore | [📄 Buka Laporan](laporan/bab-05-postgresql-pgadmin-volume-backup-restore.md) |
+| 6 | Centralized Logging dengan Fluent Bit dan PostgreSQL | [📄 Buka Laporan](laporan/bab-06-centralized-logging-fluent-bit-postgresql.md) |
 
 ---
 
@@ -40,8 +43,9 @@
 | **NGINX** | Web server dan reverse proxy dengan terminasi TLS |
 | **PostgreSQL** | Sistem manajemen basis data relasional open-source |
 | **pgAdmin** | Alat administrasi dan manajemen PostgreSQL berbasis web |
+| **Fluent Bit** | Log processor dan forwarder ringan untuk pengumpulan log tersentralisasi |
+| **Grafana** | Platform visualisasi data dan monitoring dashboard analitik log |
 | **Git & GitHub** | Sistem kontrol versi dan platform kolaborasi kode |
-| **Markdown** | Format penulisan dokumentasi laporan |
 
 ---
 
@@ -51,8 +55,8 @@
 Platform   : Proxmox VE (Virtual Machine)
 OS         : Ubuntu Linux 22.04 LTS
 Arsitektur : linux/amd64
-Hostname   : ubn-2
-User       : ubuntu-2
+Hostname   : ubn-2 / ubuntu-107
+User       : ubuntu-2 / ubuntu-107
 IP Address : 10.252.108.103
 ```
 
