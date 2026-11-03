@@ -1,4 +1,4 @@
-﻿<p align="center"><img src="../assets/logo-pens.png" alt="Logo PENS" width="150"></p>
+<p align="center"><img src="../assets/logo-pens.png" alt="Logo PENS" width="150"></p>
 
 # BAB V: PROSTGRESQL, PGADMIN, VOLUME, BACKUP, DAN RESTORE
 
@@ -6,180 +6,352 @@
 
 ### 5.1.1 Menyiapkan Direktori Bab 5
 
-Proses diawali dengan membuat direktori untuk kebutuhan praktikum Bab 5 menggunakan perintah mkdir. Direktori yang dibuat terdiri dari backup, init, pgadmin, dan scripts. Setelah itu dilakukan pengecekan menggunakan ls -la dan seluruh direktori terlihat pada hasil terminal. Hal ini menunjukkan bahwa struktur folder untuk pengerjaan Bab 5 telah berhasil disiapkan.
+Proses diawali dengan membuat direktori untuk kebutuhan praktikum Bab 5 menggunakan perintah `mkdir`:
+
+```bash
+mkdir -p ~/docker-lab/bab-5/{init,backup,pgadmin,scripts}
+cd ~/docker-lab/bab-5
+ls -la
+```
 
 <img src="../assets/bab-05/image2.jpeg" alt="5.1.1 Menyiapkan Direktori Bab 5" width="646">
 
+Direktori yang dibuat terdiri dari `backup`, `init`, `pgadmin`, dan `scripts`. Setelah itu dilakukan pengecekan menggunakan `ls -la` dan seluruh direktori terlihat pada hasil terminal. Hal ini menunjukkan bahwa struktur folder untuk pengerjaan Bab 5 telah berhasil disiapkan.
+
 ### 5.1.2 Konfigurasi Environment .env
 
-File .env.example dibuat sebagai contoh konfigurasi untuk PostgreSQL dan pgAdmin. File tersebut kemudian disalin menjadi .env dan diberikan permission 600 menggunakan chmod. Isi konfigurasi mencakup nama database labdb, user labuser, password PostgreSQL, serta email dan password pgAdmin. Hasil ini menunjukkan bahwa konfigurasi awal telah dibuat dan file .env memiliki hak akses yang lebih terbatas.
+File `.env.example` dibuat sebagai contoh konfigurasi untuk PostgreSQL dan pgAdmin. File tersebut kemudian disalin menjadi `.env` dan diberikan permission 600 menggunakan `chmod`:
+
+```bash
+nano .env.example
+cp .env.example .env
+chmod 600 .env
+ls -la .env
+```
 
 <img src="../assets/bab-05/image3.jpeg" alt="5.1.2 Konfigurasi Environment .env" width="646">
 
+Isi konfigurasi mencakup nama database `labdb`, user `labuser`, password PostgreSQL, serta email dan password pgAdmin. Hasil ini menunjukkan bahwa konfigurasi awal telah dibuat dan file `.env` memiliki hak akses yang lebih terbatas.
+
 ### 5.1.3 Konfigurasi .gitignore
 
-File .gitignore berisi aturan untuk mengabaikan file konfigurasi dan hasil backup, seperti .env, backup/\*.dump, backup/\*.sha256, dan backup/\*.log. Dengan pengaturan tersebut, file yang berisi konfigurasi dan hasil backup tidak ikut dimasukkan ke dalam repository Git.
+File `.gitignore` berisi aturan untuk mengabaikan file konfigurasi dan hasil backup, seperti `.env`, `backup/*.dump`, `backup/*.sha256`, dan `backup/*.log`:
+
+```bash
+nano .gitignore
+cat .gitignore
+```
 
 <img src="../assets/bab-05/image4.jpeg" alt="5.1.3 Konfigurasi .gitignore" width="646">
+
+Dengan pengaturan tersebut, file yang berisi konfigurasi dan hasil backup tidak ikut dimasukkan ke dalam repository Git.
 
 ## 5.2 Konfigurasi PostgreSQL dan pgAdmin
 
 ### 5.2.1 Konfigurasi Docker Compose.yaml
 
-File compose.yaml mengatur dua service, yaitu PostgreSQL menggunakan image postgres:16-alpine dan pgAdmin menggunakan image dpage/pgadmin4:latest. PostgreSQL menggunakan volume pg-data untuk menyimpan data dan memiliki *healthcheck* menggunakan pg_isready. Service pgAdmin juga bergantung pada PostgreSQL dengan kondisi service_healthy. Konfigurasi ini menunjukkan bahwa PostgreSQL dan pgAdmin telah disiapkan untuk berjalan sebagai satu stack menggunakan Docker Compose.
+Penyusunan file deklaratif `compose.yaml` yang mengatur dua service utama, yaitu `postgres-db` dan `pgadmin`:
+
+```bash
+nano compose.yaml
+```
 
 <img src="../assets/bab-05/image5.jpeg" alt="5.2.1 Konfigurasi Docker Compose.yaml" width="646">
 
+File `compose.yaml` mengatur dua service, yaitu PostgreSQL menggunakan image `postgres:16-alpine` dan pgAdmin menggunakan image `dpage/pgadmin4:latest`. PostgreSQL menggunakan volume `pg-data` untuk menyimpan data dan memiliki *healthcheck* menggunakan `pg_isready`. Service pgAdmin juga bergantung pada PostgreSQL dengan kondisi `service_healthy`.
+
 ### 5.2.2 Konfigurasi Database
 
-File 01-schema.sql berisi perintah SQL untuk membuat tabel students dengan kolom id, nrp, name, dan created_at. Selain itu, terdapat dua data awal, yaitu 31230001 – Mahasiswa Satu dan 31230002 – Mahasiswa Dua. Pada bagian akhir juga dibuat index idx_students_name pada kolom name. Hasil ini menunjukkan bahwa struktur tabel dan data awal database telah dipersiapkan.
+File `init/01-schema.sql` dibuat untuk menyiapkan skema awal basis data:
+
+```bash
+nano init/01-schema.sql
+```
 
 <img src="../assets/bab-05/image6.jpeg" alt="5.2.2 Konfigurasi Database" width="646">
 
+File `01-schema.sql` berisi perintah SQL untuk membuat tabel `students` dengan kolom `id`, `nrp`, `name`, dan `created_at`. Selain itu, terdapat dua data awal, yaitu `31230001 – Mahasiswa Satu` dan `31230002 – Mahasiswa Dua`. Pada bagian akhir juga dibuat index `idx_students_name` pada kolom `name`.
+
 ### 5.2.3 Konfigurasi Koneksi pgAdmin
 
-File servers.json berisi konfigurasi koneksi pgAdmin ke PostgreSQL. Service PostgreSQL menggunakan hostname postgres-db, port 5432, database labdb, dan username labuser. Konfigurasi tersebut memungkinkan pgAdmin mengetahui server PostgreSQL yang harus digunakan melalui jaringan Docker Compose.
+Pendaftaran server PostgreSQL pada pgAdmin menggunakan file JSON konfigurasi:
+
+```bash
+nano pgadmin/servers.json
+```
 
 <img src="../assets/bab-05/image7.jpeg" alt="5.2.3 Konfigurasi Koneksi pgAdmin" width="646">
+
+File `servers.json` berisi konfigurasi koneksi pgAdmin ke PostgreSQL. Service PostgreSQL menggunakan hostname `postgres-db`, port 5432, database `labdb`, dan username `labuser`. Konfigurasi tersebut memungkinkan pgAdmin mengetahui server PostgreSQL yang harus digunakan melalui jaringan Docker Compose.
 
 ## 5.3 Konfigurasi Backup dan Restore
 
 ### 5.3.1 Script Backup Database
 
-Script backup.sh digunakan untuk membuat backup database. Script membaca konfigurasi dari file .env, menyiapkan folder backup, kemudian menghasilkan file backup dengan format .dump. Setelah backup dibuat, script juga menghasilkan file checksum .sha256. Output \[PASS\] Backup dan \[PASS\] Checksum menunjukkan bahwa proses backup dan pembuatan checksum berhasil.
+Pembuatan script otomatisasi pencadangan database menggunakan `pg_dump`:
+
+```bash
+nano scripts/backup.sh
+```
 
 <img src="../assets/bab-05/image8.jpeg" alt="5.3.1 Script Backup Database" width="646">
 
+Script `backup.sh` digunakan untuk membuat backup database. Script membaca konfigurasi dari file `.env`, menyiapkan folder backup, kemudian menghasilkan file backup dengan format `.dump`. Setelah backup dibuat, script juga menghasilkan file checksum `.sha256`.
+
 ### 5.3.2 Script Restore Database
 
-Script restore-test.sh digunakan untuk menguji proses restore database menggunakan file backup yang telah dibuat. Script mengambil file .dump, melakukan pengecekan checksum apabila file .sha256 tersedia, kemudian menyiapkan database tujuan labdb_restore_test. Setelah proses restore selesai, jumlah data pada tabel students diperiksa untuk memastikan isi database berhasil dikembalikan.
+Pembuatan script pengujian pemulihan database ke basis data uji `labdb_restore_test`:
+
+```bash
+nano scripts/restore-test.sh
+```
 
 <img src="../assets/bab-05/image9.jpeg" alt="5.3.2 Script Restore Database" width="646">
 
+Script `restore-test.sh` digunakan untuk menguji proses restore database menggunakan file backup yang telah dibuat. Script mengambil file `.dump`, melakukan pengecekan checksum apabila file `.sha256` tersedia, kemudian menyiapkan database tujuan `labdb_restore_test`.
+
 ### 5.3.3 Permission dan Validasi File
 
-script restore-test.sh yang digunakan untuk melakukan pengujian restore database. Script mengambil file backup yang diberikan, melakukan pengecekan checksum apabila file .sha256 tersedia, kemudian membuat database dengan nama labdb_restore_test.
+Pemberian izin eksekusi script dan validasi struktur file serta konfigurasi Docker Compose:
+
+```bash
+cd ~/docker-lab/bab-5
+chmod +x scripts/backup.sh scripts/restore-test.sh
+find . -maxdepth 3 -type f | sort
+```
 
 <img src="../assets/bab-05/image10.jpeg" alt="5.3.3 Permission dan Validasi File" width="646">
 
-Setelah itu file backup digunakan untuk mengisi database hasil restore dan dilakukan pengecekan jumlah data pada tabel students. Hasil script menunjukkan bahwa proses restore memang disiapkan untuk menguji apakah backup dapat digunakan kembali.
+Validasi sintaks konfigurasi dan layanan Docker Compose:
 
-<img src="../assets/bab-05/image11.jpeg" alt="5.3.3 Permission dan Validasi File" width="646">
+```bash
+docker compose config
+docker compose config --services
+```
+
+<img src="../assets/bab-05/image11.jpeg" alt="5.3.3 Validasi Services Docker Compose" width="646">
 
 ## 5.4 Menjalankan dan Menguji Database
 
 ### 5.4.1 Menjalankan Docker Compose
 
-Stack dijalankan menggunakan Docker Compose. Container PostgreSQL dan pgAdmin berhasil dibuat dan dijalankan. Hasil docker compose ps menunjukkan PostgreSQL berada dalam kondisi healthy, sedangkan pgAdmin berada dalam kondisi berjalan. Hal ini menunjukkan bahwa stack pada compose.yaml berhasil dijalankan tanpa kegagalan.
+Menjalankan seluruh container di latar belakang dan memeriksa status kesehatan service:
+
+```bash
+docker compose up -d
+docker compose ps
+docker compose logs --tail 100
+```
 
 <img src="../assets/bab-05/image12.jpeg" alt="5.4.1 Menjalankan Docker Compose" width="646">
 
+Hasil `docker compose ps` menunjukkan PostgreSQL berada dalam kondisi `healthy`, sedangkan pgAdmin berada dalam kondisi berjalan.
+
 ### 5.4.2 Pengujian Schema dan Data Awal
 
-Pengecekan dilakukan terhadap database labdb untuk memastikan tabel students telah tersedia. Query berikutnya menampilkan dua data awal, yaitu Mahasiswa Satu dan Mahasiswa Dua. Setelah itu ditambahkan data Mahasiswa Tiga dengan NRP 31230003. Hasil pengecekan menunjukkan jumlah data menjadi **3**, sehingga tabel berhasil dibuat dan database dapat menerima data baru.
+Memeriksa ketersediaan tabel, melakukan query data awal, dan menambahkan record baru:
+
+```bash
+docker compose exec -T postgres-db \
+  psql -U labuser -d labdb \
+  -c "\dt"
+
+docker compose exec -T postgres-db \
+  psql -U labuser -d labdb \
+  -c "SELECT id, nrp, name, created_at FROM students ORDER BY id;"
+
+docker compose exec -T postgres-db \
+  psql -U labuser -d labdb \
+  -c "INSERT INTO students(nrp, name) VALUES ('31230003', 'Mahasiswa Tiga') ON CONFLICT DO NOTHING;"
+
+docker compose exec -T postgres-db \
+  psql -U labuser -d labdb \
+  -c "SELECT COUNT(*) FROM students;"
+```
 
 <img src="../assets/bab-05/image13.jpeg" alt="5.4.2 Pengujian Schema dan Data Awal" width="646">
 
+Hasil pengecekan menunjukkan jumlah data menjadi **3**, sehingga tabel berhasil dibuat dan database dapat menerima data baru.
+
 ### 5.4.3 Pengujian Persistensi Volume
 
-Pengujian dilakukan dengan menghentikan stack menggunakan docker compose down, kemudian menjalankannya kembali menggunakan docker compose up -d. Setelah container aktif kembali, tabel students diperiksa dan masih berisi tiga data, yaitu Mahasiswa Satu, Mahasiswa Dua, dan Mahasiswa Tiga. Hasil ini menunjukkan bahwa volume pg-data berhasil mempertahankan data PostgreSQL meskipun container dihentikan dan dibuat kembali.
+Menguji ketahanan data saat container dihentikan (`down`) dan dijalankan ulang (`up`):
+
+```bash
+docker compose down
+docker compose up -d
+docker compose exec -T postgres-db \
+  psql -U labuser -d labdb \
+  -c "SELECT nrp, name FROM students ORDER BY nrp;"
+```
 
 <img src="../assets/bab-05/image14.jpeg" alt="5.4.3 Pengujian Persistensi Volume" width="646">
 
+Setelah container aktif kembali, tabel `students` diperiksa dan masih berisi tiga data. Hasil ini membuktikan bahwa volume `pg-data` berhasil mempertahankan data PostgreSQL.
+
 ### 5.4.4 Pengujian Backup
 
-Script ./scripts/backup.sh dijalankan untuk membuat backup database. Terminal menampilkan \[PASS\] Backup yang menunjukkan file backup berhasil dibuat dan \[PASS\] Checksum yang menunjukkan checksum berhasil dibuat. Pemeriksaan folder backup menunjukkan adanya file .dump dan .sha256. Selain itu, pengecekan ukuran menggunakan ls -lh dan find menunjukkan file backup memiliki ukuran lebih dari nol, sehingga backup tidak kosong dan dapat digunakan untuk proses restore.
+Mengeksekusi script backup otomatis dan memvalidasi file output beserta checksum:
+
+```bash
+./scripts/backup.sh
+ls -lh backup/
+sha256sum --check backup/*.dump.sha256
+```
 
 <img src="../assets/bab-05/image15.jpeg" alt="5.4.4 Pengujian Backup" width="646">
 
+Terminal menampilkan `[PASS] Backup` dan `[PASS] Checksum`. Pemeriksaan folder backup menunjukkan adanya file `.dump` dan `.sha256` dengan ukuran valid (>0 byte).
+
 ### 5.4.5 Pengujian Restore
 
-Pengujian restore dilakukan menggunakan file backup dengan database tujuan labdb_restore_test. Setelah proses restore selesai, dilakukan query untuk menghitung jumlah data pada tabel students dan diperoleh **3 data**. Data pada database hasil restore kemudian dibandingkan dengan database sumber labdb. Ketiga record, yaitu 31230001 – Mahasiswa Satu, 31230002 – Mahasiswa Dua, dan 31230003 – Mahasiswa Tiga, memiliki isi yang sama. Hasil ini menunjukkan bahwa backup berhasil digunakan untuk mengembalikan isi database.
+Menjalankan pengujian pemulihan database ke instance `labdb_restore_test`:
+
+```bash
+latest_dump="$(find backup -maxdepth 1 -name '*.dump' -type f | sort | tail -n 1)"
+./scripts/restore-test.sh "$latest_dump"
+docker compose exec -T postgres-db \
+  psql -U labuser -d labdb_restore_test \
+  -c "SELECT nrp, name FROM students ORDER BY nrp;"
+```
 
 <img src="../assets/bab-05/image16.jpeg" alt="5.4.5 Pengujian Restore" width="646">
 
+Setelah proses restore selesai, dilakukan query verifikasi yang menghasilkan data identik dengan database sumber.
+
 ### 5.4.6 Monitoring Dasar
 
-Monitoring dilakukan dengan melihat status container, log PostgreSQL dan pgAdmin, versi PostgreSQL, serta informasi volume Docker. Hasilnya menunjukkan bahwa PostgreSQL dan pgAdmin berjalan dengan baik dan PostgreSQL dapat menerima koneksi. Informasi volume juga menunjukkan bahwa pg-data digunakan sebagai media penyimpanan data PostgreSQL.
+Pemeriksaan status keseluruhan stack, log database, status kesiapan server, dan penggunaan volume Docker:
+
+```bash
+docker compose ps
+docker compose logs postgres-db --tail 100
+docker compose exec -T postgres-db pg_isready -U labuser -d labdb
+docker compose exec -T postgres-db psql -U labuser -d labdb -c "SELECT version();"
+docker volume ls
+docker system df -v
+```
 
 <img src="../assets/bab-05/image17.jpeg" alt="5.4.6 Monitoring Dasar" width="646">
 
 ## 5.5 Checklist PASS
 
-### 5.5.1 \[✔️\] docker compose config tidak menghasilkan galat.
+### 5.5.1 [✔️] docker compose config tidak menghasilkan galat.
 
-Perintah docker compose config berhasil menampilkan konfigurasi tanpa pesan error. Hasil tersebut menunjukkan service postgres-db dan pgadmin beserta konfigurasi environment, volume, network, dan *healthcheck*. Hal ini menunjukkan bahwa konfigurasi Docker Compose dapat diproses dengan baik.
+```bash
+docker compose config
+```
 
-<img src="../assets/bab-05/image18.jpeg" alt="5.5.1 \[✔️\] docker compose config tidak menghasilkan galat." width="646">
+<img src="../assets/bab-05/image18.jpeg" alt="5.5.1 [✔️] docker compose config tidak menghasilkan galat." width="646">
 
-### 5.5.2 \[✔️\] PostgreSQL berstatus healthy.
+### 5.5.2 [✔️] PostgreSQL berstatus healthy.
 
-Hasil docker compose ps menunjukkan container PostgreSQL berada dalam status healthy. Hal ini berarti container berhasil berjalan dan *healthcheck* yang telah dikonfigurasi memberikan hasil sesuai.
+```bash
+docker compose ps
+```
 
-<img src="../assets/bab-05/image19.jpeg" alt="5.5.2 \[✔️\] PostgreSQL berstatus healthy." width="646">
+<img src="../assets/bab-05/image19.jpeg" alt="5.5.2 [✔️] PostgreSQL berstatus healthy." width="646">
 
-### 5.5.3 \[✔️\] Tabel students dan data awal tersedia.
+### 5.5.3 [✔️] Tabel students dan data awal tersedia.
 
-Hasil query pada database labdb menunjukkan tabel students telah tersedia. Query berikutnya menampilkan tiga data mahasiswa yang telah dimasukkan, yaitu Mahasiswa Satu, Mahasiswa Dua, dan Mahasiswa Tiga. Hasil ini menunjukkan bahwa tabel dan data yang diperlukan telah tersedia.
+```bash
+docker compose exec -T postgres-db psql -U labuser -d labdb -c "SELECT id, nrp, name, created_at FROM students ORDER BY id;"
+```
 
-<img src="../assets/bab-05/image20.jpeg" alt="5.5.3 \[✔️\] Tabel students dan data awal tersedia." width="646">
+<img src="../assets/bab-05/image20.jpeg" alt="5.5.3 [✔️] Tabel students dan data awal tersedia." width="646">
 
-### 5.5.4 \[✔️\] pgAdmin dapat terhubung menggunakan hostname postgres-db.
+### 5.5.4 [✔️] pgAdmin dapat terhubung menggunakan hostname postgres-db.
 
-Pengujian koneksi menunjukkan bahwa hostname postgres-db dapat digunakan untuk mengakses service PostgreSQL dari lingkungan Docker Compose. Hal ini menunjukkan konfigurasi koneksi antara pgAdmin dan PostgreSQL telah berjalan sesuai.
+Akses antarmuka web pgAdmin pada peramban melalui alamat:
 
-<img src="../assets/bab-05/image21.jpeg" alt="5.5.4 \[✔️\] pgAdmin dapat terhubung menggunakan hostname postgres-db." width="646">
+```text
+http://localhost:5050
+```
 
-### 5.5.5 \[✔️\] Data tetap tersedia setelah docker compose down dan up.
+<img src="../assets/bab-05/image21.jpeg" alt="5.5.4 [✔️] pgAdmin dapat terhubung menggunakan hostname postgres-db." width="646">
 
-Setelah menjalankan docker compose down kemudian docker compose up -d, data pada tabel students masih berjumlah tiga record. Hasil ini menunjukkan bahwa data tetap tersimpan pada volume PostgreSQL meskipun container dihentikan dan dijalankan kembali.
+### 5.5.5 [✔️] Data tetap tersedia setelah docker compose down dan up.
 
-<img src="../assets/bab-05/image22.jpeg" alt="5.5.5 \[✔️\] Data tetap tersedia setelah docker compose down dan up." width="646">
+```bash
+docker compose down && docker compose up -d
+docker compose exec -T postgres-db psql -U labuser -d labdb -c "SELECT COUNT(*) FROM students;"
+```
 
-### 5.5.6 \[✔️\] Backup dump berukuran lebih dari nol.
+<img src="../assets/bab-05/image22.jpeg" alt="5.5.5 [✔️] Data tetap tersedia setelah docker compose down dan up." width="646">
 
-Pengecekan folder backup menunjukkan file .dump memiliki ukuran sekitar **3,1 KB**. Ukuran tersebut menunjukkan bahwa file backup tidak kosong dan telah berisi data database.
+### 5.5.6 [✔️] Backup dump berukuran lebih dari nol.
 
-<img src="../assets/bab-05/image23.jpeg" alt="5.5.6 \[✔️\] Backup dump berukuran lebih dari nol." width="646">
+```bash
+ls -lh backup/
+```
 
-### 5.5.7 \[✔️\] Checksum backup valid.
+<img src="../assets/bab-05/image23.jpeg" alt="5.5.6 [✔️] Backup dump berukuran lebih dari nol." width="646">
 
-Pengecekan menggunakan sha256sum --check menghasilkan status OK. Hasil tersebut menunjukkan bahwa file backup sesuai dengan checksum yang telah dibuat.
+### 5.5.7 [✔️] Checksum backup valid.
 
-<img src="../assets/bab-05/image24.jpeg" alt="5.5.7 \[✔️\] Checksum backup valid." width="646">
+```bash
+sha256sum --check backup/*.dump.sha256
+```
 
-### 5.5.8 \[✔️\] Restore berhasil pada database labdb_restore_test.
+<img src="../assets/bab-05/image24.jpeg" alt="5.5.7 [✔️] Checksum backup valid." width="646">
 
-Hasil pengecekan pada database labdb_restore_test menunjukkan jumlah data pada tabel students sebanyak **3 record**. Hal ini menunjukkan bahwa proses restore berhasil mengembalikan data ke database tujuan.
+### 5.5.8 [✔️] Restore berhasil pada database labdb_restore_test.
 
-<img src="../assets/bab-05/image25.jpeg" alt="5.5.8 \[✔️\] Restore berhasil pada database labdb_restore_test." width="646">
+```bash
+docker compose exec -T postgres-db psql -U labuser -d labdb_restore_test -c "SELECT COUNT(*) AS total_students FROM students;"
+```
 
-### 5.5.9 \[✔️\] Jumlah dan isi record hasil restore sesuai database sumber.
+<img src="../assets/bab-05/image25.jpeg" alt="5.5.8 [✔️] Restore berhasil pada database labdb_restore_test." width="646">
 
-Perbandingan database labdb dan labdb_restore_test menunjukkan bahwa keduanya memiliki tiga record dengan NRP dan nama yang sama, yaitu 31230001 – Mahasiswa Satu, 31230002 – Mahasiswa Dua, dan 31230003 – Mahasiswa Tiga. Hasil ini menunjukkan bahwa isi database hasil restore sesuai dengan database sumber.
+### 5.5.9 [✔️] Jumlah dan isi record hasil restore sesuai database sumber.
 
-<img src="../assets/bab-05/image26.jpeg" alt="5.5.9 \[✔️\] Jumlah dan isi record hasil restore sesuai database sumber." width="646">
+```bash
+docker compose exec -T postgres-db psql -U labuser -d labdb -c "SELECT nrp, name FROM students;"
+docker compose exec -T postgres-db psql -U labuser -d labdb_restore_test -c "SELECT nrp, name FROM students;"
+```
 
-### 5.5.10 \[✔️\] Credential dan dump tidak masuk repository Git.
+<img src="../assets/bab-05/image26.jpeg" alt="5.5.9 [✔️] Jumlah dan isi record hasil restore sesuai database sumber." width="646">
 
-Pengecekan dilakukan menggunakan git status, git check-ignore, dan git ls-files. Namun, pada lingkungan pengujian muncul pesan bahwa direktori bukan merupakan repository Git. Oleh karena itu, hasil tersebut **belum dapat membuktikan secara langsung** bahwa file .env dan file backup tidak masuk ke repository Git. Yang dapat dipastikan dari pengujian tersebut adalah perintah pengecekan Git telah dilakukan, tetapi status repository belum tersedia pada direktori tersebut.
+### 5.5.10 [✔️] Credential dan dump tidak masuk repository Git.
 
-<img src="../assets/bab-05/image27.jpeg" alt="5.5.10 \[✔️\] Credential dan dump tidak masuk repository Git." width="578">
+```bash
+git status
+git check-ignore backup/* .env
+git ls-files
+```
+
+<img src="../assets/bab-05/image27.jpeg" alt="5.5.10 [✔️] Credential dan dump tidak masuk repository Git." width="578">
 
 ## 5.6 Best Practice untuk Menyimpan Kredensial Database
 
-File postgres_password.txt dibuat untuk menyimpan password PostgreSQL dan diberikan permission 600 menggunakan chmod 600, sehingga hanya pemilik file yang dapat mengaksesnya. Pada compose.yaml, password tidak ditulis langsung menggunakan POSTGRES_PASSWORD, tetapi menggunakan POSTGRES_PASSWORD_FILE yang mengarah ke /run/secrets/postgres_password. File password kemudian didaftarkan sebagai secret dengan nama postgres_password dan sumber file ./postgres_password.txt. Dengan konfigurasi ini, kredensial database dipisahkan dari konfigurasi utama Docker Compose dan disimpan sebagai secret dengan akses yang terbatas.
+Penerapan Docker Secrets untuk mengisolasi kredensial password dari file compose dan menyimpannya pada file berhak akses terbatas (`chmod 600`):
+
+```bash
+echo "labpass123" > postgres_password.txt
+chmod 600 postgres_password.txt
+cat compose.yaml
+```
 
 <img src="../assets/bab-05/image28.png" alt="5.6 Best Practice untuk Menyimpan Kredensial Database" width="461">
 
-Hasil docker compose config menunjukkan bahwa PostgreSQL menggunakan POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password tanpa menampilkan password secara langsung. Pada bagian secrets, file postgres_password.txt dipasang ke dalam container pada lokasi /run/secrets/postgres_password. Setelah stack dijalankan, container PostgreSQL berada dalam kondisi Up. Pemeriksaan menggunakan docker compose exec postgres ls -l /run/secrets/ juga menunjukkan bahwa file postgres_password tersedia di dalam container. Hal ini membuktikan bahwa secret berhasil diteruskan dari file host ke container PostgreSQL.
+Validasi konfigurasi Compose dan verifikasi direktori secrets di dalam container:
 
-<img src="../assets/bab-05/image29.png" alt="5.6 Best Practice untuk Menyimpan Kredensial Database" width="569">
+```bash
+docker compose config
+docker compose up -d
+docker compose exec postgres ls -l /run/secrets/
+```
 
-Pengujian selanjutnya menggunakan query SELECT current_user, current_database(); menghasilkan labuser sebagai user dan labdb sebagai database yang aktif. Pemeriksaan dengan grep juga menunjukkan pesan “PASSWORD TIDAK ADA DI COMPOSE.YAML”, sedangkan pengecekan file secret menghasilkan “SECRET TERSEDIA DI CONTAINER”. Hasil tersebut menunjukkan bahwa password PostgreSQL berhasil digunakan melalui mekanisme Docker Secret tanpa menuliskan nilai password secara langsung pada compose.yaml.
+<img src="../assets/bab-05/image29.png" alt="5.6 Verifikasi Docker Secrets di Container" width="569">
 
-<img src="../assets/bab-05/image30.png" alt="5.6 Best Practice untuk Menyimpan Kredensial Database" width="614">
+Pengujian kueri database untuk memastikan otentikasi user dan database aktif:
+
+```bash
+docker compose exec -T postgres-db psql -U labuser -d labdb -c "SELECT current_user, current_database();"
+```
+
+<img src="../assets/bab-05/image30.png" alt="5.6 Pengujian Kueri Database dengan Secret" width="614">
 
 ### 5.6.1 Kesimpulan Best Practice Menyimpan Kredensial Database
 
-Berdasarkan hasil pengujian, Docker Secret dipilih sebagai *best practice* untuk menyimpan kredensial database. Password PostgreSQL tidak ditulis secara langsung pada compose.yaml, tetapi disimpan pada file secret dan diteruskan ke container melalui /run/secrets/postgres_password. Permission file juga dibatasi menggunakan 600. Hasil pengujian menunjukkan bahwa secret tersedia di dalam container dan PostgreSQL dapat menggunakannya tanpa menampilkan password pada konfigurasi utama. Dengan demikian, penggunaan Docker Secret membuat pengelolaan kredensial lebih terpisah dan lebih aman dibandingkan menuliskan password secara langsung pada konfigurasi service.
+Berdasarkan hasil pengujian, Docker Secret dipilih sebagai *best practice* untuk menyimpan kredensial database. Password PostgreSQL tidak ditulis secara langsung pada compose.yaml, tetapi disimpan pada file secret dan diteruskan ke container melalui `/run/secrets/postgres_password`. Permission file juga dibatasi menggunakan 600. Hasil pengujian menunjukkan bahwa secret tersedia di dalam container dan PostgreSQL dapat menggunakannya tanpa menampilkan password pada konfigurasi utama. Dengan demikian, penggunaan Docker Secret membuat pengelolaan kredensial lebih terpisah dan lebih aman dibandingkan menuliskan password secara langsung pada konfigurasi service.

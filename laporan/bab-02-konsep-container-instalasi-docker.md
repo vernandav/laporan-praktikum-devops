@@ -1,4 +1,4 @@
-﻿<p align="center"><img src="../assets/logo-pens.png" alt="Logo PENS" width="150"></p>
+<p align="center"><img src="../assets/logo-pens.png" alt="Logo PENS" width="150"></p>
 
 # BAB II: KONSEP CONTAINER DAN INSTALASI DOCKER
 
@@ -7,13 +7,9 @@
 Praktikum dilakukan pada Virtual Machine (VM) yang berjalan pada platform virtualisasi Proxmox VE. Lingkungan yang digunakan adalah sebagai berikut:
 
 - Sistem Operasi: Ubuntu Linux 22.04 LTS
-
 - Arsitektur: linux/amd64
-
 - Hostname: ubn-2
-
 - User: ubuntu-2
-
 - IP Address: 10.252.108.103
 
 Seluruh proses instalasi, konfigurasi, dan pengujian Docker dilakukan melalui terminal pada VM tersebut. Pengujian akses service container dilakukan melalui browser menggunakan IP address VM.
@@ -22,7 +18,13 @@ Seluruh proses instalasi, konfigurasi, dan pengujian Docker dilakukan melalui te
 
 ### 2.2.1 Inisialisasi Direktori dan Workspace
 
-Langkah awal praktikum dimulai dengan menyiapkan direktori kerja yang terisolasi untuk mengorganisir seluruh file konfigurasi dan dependensi praktikum Docker Bab 02. Perintah mkdir -p digunakan untuk membuat direktori secara bertingkat.
+Langkah awal praktikum dimulai dengan menyiapkan direktori kerja yang terisolasi untuk mengorganisir seluruh file konfigurasi dan dependensi praktikum Docker Bab 02:
+
+```bash
+mkdir -p ~/docker-lab/bab-2
+cd ~/docker-lab/bab-2
+ls -la
+```
 
 <img src="../assets/bab-02/image2.png" alt="2.2.1 Inisialisasi Direktori dan Workspace" width="331">
 
@@ -32,7 +34,13 @@ Direktori docker-lab/bab-2 berhasil dibuat di bawah direktori home user. Penguji
 
 ### 2.2.2 Instalasi Paket Dependensi dan Direktori Keyrings
 
-Sebelum menambahkan repository resmi Docker Engine, sistem perlu diperbarui dengan paket dependensi dasar yang dibutuhkan untuk komunikasi jaringan HTTPS, manajemen sertifikat, serta kunci enkripsi GPG.
+Sebelum menambahkan repository resmi Docker Engine, sistem perlu diperbarui dengan paket dependensi dasar yang dibutuhkan untuk komunikasi jaringan HTTPS, manajemen sertifikat, serta kunci enkripsi GPG:
+
+```bash
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg lsb-release
+sudo install -m 0755 -d /etc/apt/keyrings
+```
 
 <img src="../assets/bab-02/image3.png" alt="2.2.2 Instalasi Paket Dependensi dan Direktori Keyrings" width="513">
 
@@ -42,7 +50,15 @@ Paket ca-certificates, curl, gnupg, dan lsb-release terverifikasi telah berada p
 
 ### 2.2.3 Konfigurasi GPG Keyring dan Official Repository Docker
 
-Untuk menjamin integritas dan autentisitas paket perangkat lunak Docker yang diunduh via APT, kunci GPG resmi Docker diunduh dan disimpan ke dalam direktori keyrings, kemudian entri repository ditambahkan ke dalam skema paket APT Ubuntu.
+Untuk menjamin integritas dan autentisitas paket perangkat lunak Docker yang diunduh via APT, kunci GPG resmi Docker diunduh dan disimpan ke dalam direktori keyrings, kemudian entri repository ditambahkan ke dalam skema paket APT Ubuntu:
+
+```bash
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
 
 <img src="../assets/bab-02/image4.png" alt="2.2.3 Konfigurasi GPG Keyring dan Official Repository Docker" width="641">
 
@@ -52,7 +68,12 @@ Berkas docker.gpg berhasil diatur dengan hak akses publik baca (a+r). Penambahan
 
 ### 2.2.4 Pengaturan Hak Akses User Non-Root
 
-Secara default, Docker Daemon berjalan di bawah hak akses akun root. Agar pengguna biasa dapat menjalankan perintah Docker tanpa menyertakan instruksi sudo pada setiap eksekusi, user ditambahkan ke dalam Unix group docker.
+Secara default, Docker Daemon berjalan di bawah hak akses akun root. Agar pengguna biasa dapat menjalankan perintah Docker tanpa menyertakan instruksi sudo pada setiap eksekusi, user ditambahkan ke dalam Unix group docker:
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
 
 <img src="../assets/bab-02/image5.png" alt="2.2.4 Pengaturan Hak Akses User Non-Root" width="493">
 
@@ -62,7 +83,11 @@ Akun pengguna ubuntu-2 berhasil dimasukkan ke dalam grup docker. Penggunaan peri
 
 ### 2.2.5 Verifikasi Instalasi dan Status Docker Engine
 
-Guna memastikan bahwa Docker Daemon telah aktif dan dapat berkomunikasi dengan CLI client secara normal, dilakukan pengecekan arsitektur dan versi komponen Docker Engine.
+Guna memastikan bahwa Docker Daemon telah aktif dan dapat berkomunikasi dengan CLI client secara normal, dilakukan pengecekan arsitektur dan versi komponen Docker Engine:
+
+```bash
+docker version
+```
 
 <img src="../assets/bab-02/image6.png" alt="2.2.5 Verifikasi Instalasi dan Status Docker Engine" width="365">
 
@@ -72,7 +97,14 @@ Perintah docker version menampilkan informasi lengkap mengenai Client dan Server
 
 ### 2.2.6 Deployment dan Monitoring Container Web Server (nginx)
 
-Praktikum dilanjutkan dengan mengunduh (pull) image resmi Nginx versi 1.26 dari Docker Hub, kemudian menjalankan container dalam mode terisolasi di latar belakang (detached mode -d) serta memetakan port host 8080 ke port 80 milik container.
+Praktikum dilanjutkan dengan mengunduh (pull) image resmi Nginx versi 1.26 dari Docker Hub, kemudian menjalankan container dalam mode terisolasi di latar belakang (detached mode -d) serta memetakan port host 8080 ke port 80 milik container:
+
+```bash
+docker pull nginx:1.26
+docker run -d --name web-public -p 8080:80 nginx:1.26
+docker ps
+docker logs --tail 20 web-public
+```
 
 <img src="../assets/bab-02/image7.png" alt="2.2.6 Deployment dan Monitoring Container Web Server (nginx)" width="557">
 
@@ -82,11 +114,17 @@ Image nginx:1.26 berhasil diunduh. Container dinamai web-public dan berstatus Up
 
 ### 2.2.7 Validasi Pengujian Web Server Via CLI dan Browser
 
-Untuk memverifikasi konektivitas layanan web yang berjalan di dalam container, pengujian dilakukan melalui dua pendekatan: panggilan HTTP menggunakan command curl dan pengujian antarmuka melalui Web Browser.
+Untuk memverifikasi konektivitas layanan web yang berjalan di dalam container, pengujian dilakukan melalui dua pendekatan: panggilan HTTP menggunakan command curl dan pengujian antarmuka melalui Web Browser:
 
-<img src="../assets/bab-02/image8.png" alt="2.2.7 Validasi Pengujian Web Server Via CLI dan Browser" width="499">
+```bash
+curl http://localhost:8080
+```
 
-<img src="../assets/bab-02/image9.png" alt="2.2.7 Validasi Pengujian Web Server Via CLI dan Browser" width="499">
+<img src="../assets/bab-02/image8.png" alt="2.2.7 Validasi Pengujian Web Server Via CLI" width="499">
+
+Pengujian antarmuka melalui web browser diakses via URL `http://10.252.108.103:8080`:
+
+<img src="../assets/bab-02/image9.png" alt="2.2.7 Validasi Pengujian Web Server Via Browser" width="499">
 
 *Gambar 3.2 Tampilan verifikasi halaman web Nginx "Welcome to nginx!" yang diakses via browser pada IP 10.252.108.103:8080.*
 
@@ -94,17 +132,42 @@ Hasil command curl http://localhost:8080 mengembalikan struktur dokumen HTML res
 
 ### 2.2.8 Eksplorasi Container Interaktif
 
-Docker memungkinkan pembentukan lingkungan sistem operasi terisolasi secara cepat. Command pada gambar 4.1 digunakan untuk masuk ke dalam sesi terminal interaktif container Ubuntu.
+Docker memungkinkan pembentukan lingkungan sistem operasi terisolasi secara cepat. Perintah berikut digunakan untuk masuk ke dalam sesi terminal interaktif container Ubuntu dan memeriksa versi rilis OS di dalamnya:
+
+```bash
+docker run -it --name ubuntu-test ubuntu:22.04 /bin/bash
+cat /etc/os-release
+exit
+docker rm -f web-public ubuntu-test
+```
 
 <img src="../assets/bab-02/image8.png" alt="2.2.8 Eksplorasi Container Interaktif" width="499">
 
 *Gambar 4.1 Pengujian respon curl localhost dan eksekusi container interaktif Ubuntu 22.04 LTS.*
 
-Command tersebut berhasil berjalan dan terhubung dengan akun root@932486173c62:/#. Pengecekan file /etc/os-release mengonfirmasi bahwa distribusi yang berjalan di dalam container adalah Ubuntu 22.04.5 LTS.
+Command tersebut berhasil berjalan dan terhubung dengan akun `root@932486173c62:/#`. Pengecekan file `/etc/os-release` mengonfirmasi bahwa distribusi yang berjalan di dalam container adalah Ubuntu 22.04.5 LTS.
 
 ### 2.2.9 Pembuatan Custom Image Menggunakan Dockerfile
 
-Praktikum dilanjutkan dengan membangun Custom Docker Image berbasis nginx:1.26-alpine yang memuat halaman web kustom ciptaan sendiri melalui instruksi spesifik pada berkas Dockerfile.
+Praktikum dilanjutkan dengan membangun Custom Docker Image berbasis nginx:1.26-alpine yang memuat halaman web kustom ciptaan sendiri melalui instruksi spesifik pada berkas Dockerfile:
+
+```bash
+mkdir -p ~/docker-lab/custom-web && cd ~/docker-lab/custom-web
+cat > index.html << 'EOF'
+<h1>Docker Lab PENS</h1>
+<p>Container berhasil berjalan.</p>
+EOF
+cat > Dockerfile << 'EOF'
+FROM nginx:1.26-alpine
+LABEL maintainer="admin@pens.ac.id"
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+EOF
+docker build -t pens-web:1.0 .
+docker run -d --name pens-app -p 9090:80 pens-web:1.0
+curl http://localhost:9090
+```
 
 <img src="../assets/bab-02/image10.png" alt="2.2.9 Pembuatan Custom Image Menggunakan Dockerfile" width="465">
 
@@ -114,7 +177,7 @@ Proses build image pens-web:1.0 berhasil. Container pens-app di-deploy pada port
 
 ### 2.2.10 Pengujian Custom Web Server Via Browser dan Verifikasi Skenario
 
-Untuk membuktikan ketersediaan custom web application bagi pengguna luar, pengujian dilakukan dengan membuka antarmuka browser pada alamat IP Host http://10.252.108.103:9090.
+Untuk membuktikan ketersediaan custom web application bagi pengguna luar, pengujian dilakukan dengan membuka antarmuka browser pada alamat IP Host `http://10.252.108.103:9090`:
 
 <img src="../assets/bab-02/image11.png" alt="2.2.10 Pengujian Custom Web Server Via Browser dan Verifikasi Skenario" width="353">
 
@@ -134,11 +197,11 @@ Untuk membuktikan ketersediaan custom web application bagi pengguna luar, penguj
 
 **1. Instruksi EXPOSE (Metadata pada Dockerfile):**
 
-Instruksi EXPOSE 80 di dalam Dockerfile berfungsi sebagai dokumentasi internal / deklarasi metadata yang menginformasikan port mana yang digunakan oleh aplikasi di dalam container. Instruksi ini TIDAK membuka port ke antarmuka jaringan host luar secara otomatis dan tidak mengonfigurasi firewall / routing host.
+Instruksi `EXPOSE 80` di dalam Dockerfile berfungsi sebagai dokumentasi internal / deklarasi metadata yang menginformasikan port mana yang digunakan oleh aplikasi di dalam container. Instruksi ini TIDAK membuka port ke antarmuka jaringan host luar secara otomatis dan tidak mengonfigurasi firewall / routing host.
 
 **2. Parameter -p / --publish (Docker CLI Runtime):**
 
-Parameter -p 9090:80 pada saat perintah docker run berfungsi secara aktif melakukan Pemetaan Port (Port Binding). Docker Daemon secara langsung memodifikasi aturan iptables / IP forwarding pada sistem operasi host untuk meneruskan seluruh lalu lintas dari port fisik host (9090) ke port internal container (80).
+Parameter `-p 9090:80` pada saat perintah `docker run` berfungsi secara aktif melakukan Pemetaan Port (Port Binding). Docker Daemon secara langsung memodifikasi aturan iptables / IP forwarding pada sistem operasi host untuk meneruskan seluruh lalu lintas dari port fisik host (9090) ke port internal container (80).
 
 ### 2.2.13 Evaluasi dan Latihan Mandiri
 
@@ -148,18 +211,17 @@ Tag latest bersifat mutable (dapat berubah seiring waktu). Tag ini hanyalah sebu
 
 **2. Jelaskan peran `containerd` dan `runc` dalam arsitektur Docker.**
 
-- runc (Low-Level Container Runtime): Komponen tingkat paling bawah yang mengimplementasikan spesifikasi OCI (Open Container Initiative). Tugas utamanya adalah berinteraksi langsung dengan kernel Linux untuk membuat, mengonfigurasi, dan menjalankan container process memanfaatkan fitur namespaces (isolasi PID, jaringan, mount point) dan cgroups (pembatasan memori/CPU). Setelah container selesai diinisialisasi, proses runc langsung keluar (exit).
-
-- containerd (High-Level Container Runtime Daemon): Bertindak sebagai pengelola siklus hidup container (container lifecycle manager) tingkat menengah. containerd mengendalikan eksekusi runc, mengelola penarikan/penyimpanan image dari registry, mengatur sistem penyimpanan layer (OverlayFS), mengelola attachment jaringan dasar, serta memantau kesehatan proses container.
+- **runc (Low-Level Container Runtime):** Komponen tingkat paling bawah yang mengimplementasikan spesifikasi OCI (Open Container Initiative). Tugas utamanya adalah berinteraksi langsung dengan kernel Linux untuk membuat, mengonfigurasi, dan menjalankan container process memanfaatkan fitur namespaces (isolasi PID, jaringan, mount point) dan cgroups (pembatasan memori/CPU). Setelah container selesai diinisialisasi, proses runc langsung keluar (exit).
+- **containerd (High-Level Container Runtime Daemon):** Bertindak sebagai pengelola siklus hidup container (container lifecycle manager) tingkat menengah. containerd mengendalikan eksekusi runc, mengelola penarikan/penyimpanan image dari registry, mengatur sistem penyimpanan layer (OverlayFS), mengelola attachment jaringan dasar, serta memantau kesehatan proses container.
 
 **3. Apa konsekuensi keamanan dari memasukkan user ke group `docker`?**
 
-Memasukkan pengguna biasa (non-root) ke dalam grup docker memberikan hak akses yang setara dengan akses root penuh tanpa kata sandi (passwordless root privilege escalation) pada sistem host. Hal ini terjadi karena Docker Daemon berjalan dengan privilese root dan berkomunikasi melalui socket Unix /var/run/docker.sock yang diizinkan untuk diakses oleh anggota grup docker. User dalam grup ini dapat dengan mudah melakukan mount direktori root host ke dalam container (misal: docker run -v /:/host-root -it ubuntu bash), yang memungkinkan pengguna membaca/memodifikasi file sensitif sistem host seperti /etc/shadow atau /etc/sudoers. Praktik DevSecOps merekomendasikan penggunaan Rootless Docker Mode atau pembatasan ketat pengguna grup ini.
+Memasukkan pengguna biasa (non-root) ke dalam grup docker memberikan hak akses yang setara dengan akses root penuh tanpa kata sandi (passwordless root privilege escalation) pada sistem host. Hal ini terjadi karena Docker Daemon berjalan dengan privilese root dan berkomunikasi melalui socket Unix `/var/run/docker.sock` yang diizinkan untuk diakses oleh anggota grup docker. User dalam grup ini dapat dengan mudah melakukan mount direktori root host ke dalam container (misal: `docker run -v /:/host-root -it ubuntu bash`), yang memungkinkan pengguna membaca/memodifikasi file sensitif sistem host seperti `/etc/shadow` atau `/etc/sudoers`. Praktik DevSecOps merekomendasikan penggunaan Rootless Docker Mode atau pembatasan ketat pengguna grup ini.
 
 **4. Bandingkan layer image `nginx:1.26-alpine` dan image custom yang Anda buat.**
 
-Image base nginx:1.26-alpine berukuran sangat ringkas (~10 MB) dan terdiri dari layer OS minimalis Alpine Linux serta binaries Nginx. Saat membangun image custom pens-web:1.0 menggunakan Dockerfile, Docker menggunakan mekanisme Union File System (Overlay2). Image custom membagikan (sharing) seluruh layer read-only milik base image nginx:1.26-alpine tanpa menduplikasi data, dan hanya menambahkan 1 layer read-only baru yang berisi instruksi COPY index.html. Pendekatan layered storage ini sangat efisien dalam menghemat ruang penyimpanan disk dan mempercepat distribusi build.
+Image base `nginx:1.26-alpine` berukuran sangat ringkas (~10 MB) dan terdiri dari layer OS minimalis Alpine Linux serta binaries Nginx. Saat membangun image custom `pens-web:1.0` menggunakan Dockerfile, Docker menggunakan mekanisme Union File System (Overlay2). Image custom membagikan (sharing) seluruh layer read-only milik base image `nginx:1.26-alpine` tanpa menduplikasi data, dan hanya menambahkan 1 layer read-only baru yang berisi instruksi `COPY index.html`. Pendekatan layered storage ini sangat efisien dalam menghemat ruang penyimpanan disk dan mempercepat distribusi build.
 
 **5. Kapan sebaiknya memilih Virtual Machine (VM) daripada container?**
 
-Virtual Machine (VM) sebaiknya dipilih dibanding Container dalam kondisi: (1) Isolasi Keamanan Tingkat Tinggi (Strong Isolation): VM menggunakan hardware-level virtualization (Hypervisor) dengan Kernel OS terpisah, sehingga sangat cocok untuk lingkungan multi-tenant di mana antar entitas tidak boleh membagikan Kernel yang sama. (2) Kebutuhan OS / Kernel Berbeda: Ketika aplikasi membutuhkan Kernel atau OS yang berbeda dari host (misal menjalankan VM Windows pada Host Linux). (3) Aplikasi Legacy / Driver Khusus: Aplikasi terdahulu yang membutuhkan modul kernel spesifik, konfigurasi memori langsung, atau akses hardware device tertentu.
+Virtual Machine (VM) sebaiknya dipilih dibanding Container dalam kondisi: (1) **Isolasi Keamanan Tingkat Tinggi (Strong Isolation):** VM menggunakan hardware-level virtualization (Hypervisor) dengan Kernel OS terpisah, sehingga sangat cocok untuk lingkungan multi-tenant di mana antar entitas tidak boleh membagikan Kernel yang sama. (2) **Kebutuhan OS / Kernel Berbeda:** Ketika aplikasi membutuhkan Kernel atau OS yang berbeda dari host (misal menjalankan VM Windows pada Host Linux). (3) **Aplikasi Legacy / Driver Khusus:** Aplikasi terdahulu yang membutuhkan modul kernel spesifik, konfigurasi memori langsung, atau akses hardware device tertentu.
