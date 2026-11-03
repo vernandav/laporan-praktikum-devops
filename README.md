@@ -67,3 +67,7 @@ IP Address : 10.252.108.103
 Repository ini dibuat untuk keperluan dokumentasi pembelajaran dan praktikum DevOps.  
 Isi laporan disesuaikan dengan pelaksanaan praktikum yang sebenarnya.  
 Seluruh credential, password, dan token yang muncul dalam screenshot bersifat **dummy/lab** dan tidak digunakan di lingkungan produksi.
+
+---
+
+## PS. Vernanda Mulia Hamonangan Manurung
