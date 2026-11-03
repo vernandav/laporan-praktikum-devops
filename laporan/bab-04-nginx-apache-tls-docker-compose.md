@@ -20,7 +20,7 @@ Pada configuration/deployment flow, konfigurasi reverse proxy diperlakukan sebag
 
 ## 4.1 Direktori Kerja
 
-Pada praktikum ini dibuat direktori kerja terstruktur untuk menyimpan seluruh konfigurasi dan file yang dibutuhkan dalam menjalankan aplikasi menggunakan Docker Compose:
+Pada praktikum ini dibuat sebuah direktori kerja yang digunakan untuk menyimpan seluruh konfigurasi dan file yang dibutuhkan dalam menjalankan aplikasi menggunakan Docker Compose. Terminal menunjukkan pembuatan direktori kerja utama bab-4 beserta beberapa subdirektori, yaitu apache/sites, nginx/conf, certs, logs/nginx, dan app. Pemisahan folder ini menerapkan konsep *separation of concerns*, sehingga konfigurasi, sertifikat TLS, kode aplikasi, dan log memiliki tempat masing-masing. Struktur tersebut nantinya dapat dihubungkan ke dalam kontainer melalui *bind mount* pada Docker Compose agar data tetap tersimpan dan terorganisasi pada mesin *host*.
 
 ```bash
 mkdir -p ~/docker-lab/bab-4/{apache/sites,nginx/conf,certs,logs/nginx,app}
@@ -29,11 +29,9 @@ cd ~/docker-lab/bab-4
 
 <img src="../assets/bab-04/image3.jpeg" alt="4.1 Direktori Kerja" width="646">
 
-Pemisahan folder ini menerapkan konsep *separation of concerns*, sehingga konfigurasi, sertifikat TLS, kode aplikasi, dan log memiliki tempat masing-masing.
-
 ## 4.2 Sertifikat TLS Laboratorium
 
-Pembuatan sertifikat self-signed X.509 dan kunci privat RSA 2048-bit untuk komunikasi HTTPS terenkripsi pada port 8443:
+Perintah openssl req menghasilkan dua berkas sertifikat di direktori certs/, yaitu lab.crt sebagai sertifikat publik dan lab.key sebagai kunci privat RSA 2048-bit. Perintah ls -l certs/ mengonfirmasi kedua berkas tersebut telah berhasil dibuat. Selanjutnya, openssl x509 menunjukkan bahwa sertifikat memiliki CN=localhost, O=DevSecOps Docker Lab, berlaku selama 365 hari, serta memiliki *Subject Alternative Name* (SAN) DNS:localhost dan IP Address:127.0.0.1. Sertifikat ini digunakan oleh NGINX untuk menyediakan komunikasi HTTPS terenkripsi melalui port 8443.
 
 ```bash
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
@@ -45,130 +43,80 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 chmod 600 certs/lab.key
 chmod 644 certs/lab.crt
 ls -l certs/
+openssl x509 -in certs/lab.crt -text -noout | grep -E "Subject:|Issuer:|Not After|DNS:|IP Address:"
 ```
 
 <img src="../assets/bab-04/image4.jpeg" alt="4.2 Sertifikat TLS Laboratorium" width="605">
 
-Perintah openssl req menghasilkan dua berkas sertifikat di direktori certs/, yaitu lab.crt sebagai sertifikat publik dan lab.key sebagai kunci privat RSA 2048-bit.
-
 ## 4.3 File compose.yaml
 
-Penyusunan berkas deklaratif `compose.yaml` untuk mengoordinasikan service proxy (NGINX), web server (Apache), dan backend API (Flask):
+Berkas compose.yaml mengatur tiga layanan, yaitu proxy menggunakan NGINX, apache-web menggunakan Apache, dan flask-app sebagai backend aplikasi. NGINX memetakan port 127.0.0.1:8080 untuk HTTP dan 127.0.0.1:8443 untuk HTTPS, serta menggunakan *bind mount* untuk konfigurasi, sertifikat, dan log. apache-web menyimpan halaman web pada direktori ./apache/sites, sedangkan flask-app dibuat dari ./app dan memiliki *healthcheck* pada endpoint /health. Ketiga layanan terhubung melalui jaringan web-net. Penggunaan 127.0.0.1 membatasi akses port hanya dari mesin lokal, sementara depends_on dengan service_healthy memastikan NGINX berjalan setelah backend Flask dalam kondisi siap.
 
 ```bash
-nano compose.yaml
-```
-
-```yaml
-services:
-  proxy:
-    image: nginx:alpine
-    ports:
-      - "127.0.0.1:8080:80"
-      - "127.0.0.1:8443:443"
-    volumes:
-      - ./nginx/conf:/etc/nginx/conf.d:ro
-      - ./certs:/etc/nginx/certs:ro
-      - ./logs/nginx:/var/log/nginx
-    networks:
-      - web-net
-    depends_on:
-      apache-web:
-        condition: service_started
-      flask-app:
-        condition: service_healthy
-
-  apache-web:
-    image: httpd:2.4-alpine
-    volumes:
-      - ./apache/sites:/usr/local/apache2/htdocs:ro
-    networks:
-      - web-net
-
-  flask-app:
-    build:
-      context: ./app
-    networks:
-      - web-net
-    healthcheck:
-      test:
-        - CMD
-        - python
-        - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')"
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-
-networks:
-  web-net:
-    driver: bridge
+cat compose.yaml
 ```
 
 <img src="../assets/bab-04/image5.jpeg" alt="4.3 File compose.yaml" width="605">
 
 ## 4.4 File nginx/conf/default.conf
 
-Konfigurasi reverse proxy NGINX untuk routing HTTP->HTTPS redirect (301), reverse proxy ke Apache (`/`) dan Flask (`/api/`), serta penambahan security headers:
+Konfigurasi NGINX menggunakan upstream untuk menghubungkan trafik ke apache-web:80 dan flask-app:5000. Pada port HTTP, seluruh permintaan dialihkan dengan status 301 ke HTTPS melalui port 8443. Pada port HTTPS, NGINX menggunakan sertifikat TLS dan membatasi protokol pada TLS 1.2 dan TLS 1.3, serta menerapkan beberapa *security headers* seperti X-Content-Type-Options, X-Frame-Options, dan Referrer-Policy. Trafik pada / diteruskan ke Apache, sedangkan /api/ diteruskan ke Flask dengan beberapa header seperti X-Real-IP dan X-Forwarded-Proto. Dengan konfigurasi ini, NGINX berperan sebagai *reverse proxy* dan menjadi titik masuk utama sebelum permintaan diteruskan ke layanan backend.
 
 ```bash
-nano nginx/conf/default.conf
+cat nginx/conf/default.conf
 ```
 
 <img src="../assets/bab-04/image6.jpeg" alt="4.4 File nginx/conf/default.conf" width="646">
 
-Konfigurasi NGINX menggunakan upstream untuk menghubungkan trafik ke apache-web:80 dan flask-app:5000. Pada port HTTP, seluruh permintaan dialihkan dengan status 301 ke HTTPS melalui port 8443.
-
 ## 4.5 File apache/sites/index.html
 
-Pembuatan halaman web statis HTML yang akan disajikan oleh service Apache melalui reverse proxy NGINX:
+File index.html digunakan sebagai halaman web yang disediakan oleh Apache. Halaman ini digunakan untuk memastikan bahwa Apache dapat berjalan dengan baik dan dapat diakses melalui reverse proxy Nginx.
+
+Dengan konfigurasi tersebut, client tidak mengakses Apache secara langsung, tetapi request diterima oleh Nginx terlebih dahulu dan kemudian diteruskan ke Apache.
 
 ```bash
-nano apache/sites/index.html
+cat apache/sites/index.html
 ```
 
 <img src="../assets/bab-04/image7.jpeg" alt="4.5 File apache/sites/index.html" width="646">
 
-Dengan konfigurasi tersebut, client tidak mengakses Apache secara langsung, tetapi request diterima oleh Nginx terlebih dahulu dan kemudian diteruskan ke Apache.
-
 ## 4.6 File app/requirements.txt
 
-Mendefinisikan daftar pustaka Python yang dibutuhkan oleh aplikasi Flask:
+File requirements.txt digunakan untuk mendefinisikan library Python yang dibutuhkan oleh aplikasi Flask. Dependency tersebut akan di-install ketika image Flask dibuat sehingga aplikasi dapat dijalankan di dalam container.
 
 ```bash
-nano app/requirements.txt
+cat app/requirements.txt
 ```
 
 <img src="../assets/bab-04/image8.jpeg" alt="4.6 File app/requirements.txt" width="646">
 
 ## 4.7 File app/app.py
 
-Pembuatan file kode backend Flask yang menyediakan endpoint root `/` dan endpoint kesehatan `/health`:
+File app.py memiliki dua endpoint, yaitu / dan /health. Endpoint / mengembalikan informasi status aplikasi, nama layanan, pesan akses melalui NGINX, serta membaca header X-Forwarded-Proto. Sementara itu, endpoint /health mengembalikan status healthy dengan HTTP 200. Endpoint /health digunakan oleh *healthcheck* Docker Compose untuk memastikan kontainer Flask dalam kondisi siap dan dapat merespons permintaan.
 
 ```bash
-nano app/app.py
+cat app/app.py
 ```
 
 <img src="../assets/bab-04/image9.jpeg" alt="4.7 File app/app.py" width="646">
 
 ## 4.8 File app/Dockerfile
 
-Pembuatan Dockerfile aplikasi backend berbasis python:3.12-slim dengan pengguna non-root (`USER appuser`):
+Dockerfile menggunakan python:3.12-slim sebagai *base image* yang lebih ringan sehingga dapat mengurangi ukuran image dan *attack surface*. Aplikasi ditempatkan pada direktori /app, kemudian dependensi diinstal dari requirements.txt.
 
 ```bash
-nano app/Dockerfile
+cat app/Dockerfile
 ```
 
 <img src="../assets/bab-04/image10.jpeg" alt="4.8 File app/Dockerfile" width="646">
 
-Konfigurasi user non-root dan perintah eksekusi Gunicorn:
+Selanjutnya dibuat user appuser dengan UID 10001 dan aplikasi dijalankan menggunakan USER appuser sehingga tidak berjalan sebagai *root*. Port 5000 diekspos untuk layanan Flask, sedangkan gunicorn digunakan sebagai *WSGI server* dengan 2 worker untuk menjalankan aplikasi.
 
-<img src="../assets/bab-04/image11.jpeg" alt="4.8 File app/Dockerfile bagian user dan runner" width="646">
+<img src="../assets/bab-04/image11.jpeg" alt="4.8 File app/Dockerfile" width="646">
 
 ## 4.9 Validasi
 
-Memvalidasi struktur direktori file serta memeriksa sintaks Docker Compose:
+Perintah find menampilkan struktur file yang telah dibuat dalam direktori bab-4. Selanjutnya, docker compose config memeriksa konfigurasi compose.yaml dan menghasilkan konfigurasi tanpa pesan kesalahan. Perintah docker compose config --services juga mengonfirmasi tiga layanan yang terdaftar, yaitu apache-web, flask-app, dan proxy. Tahap ini memastikan struktur file dan konfigurasi Docker Compose sudah benar sebelum proses deployment dijalankan.
 
 ```bash
 cd ~/docker-lab/bab-4
@@ -177,13 +125,13 @@ docker compose config
 docker compose config --services
 ```
 
-<img src="../assets/bab-04/image12.jpeg" alt="4.9 Validasi" width="221">
+<img src="../assets/bab-04/image10.jpeg" alt="4.9 Validasi" width="646">
 
-Perintah find menampilkan struktur file yang telah dibuat dalam direktori bab-4. Selanjutnya, docker compose config memeriksa konfigurasi compose.yaml dan menghasilkan konfigurasi tanpa pesan kesalahan.
+<img src="../assets/bab-04/image12.jpeg" alt="4.9 Validasi" width="221">
 
 ## 4.10 Build dan Menjalankan Stack
 
-Membangun image custom Flask dan menjalankan seluruh stack multi-container di latar belakang:
+Perintah docker compose ps menunjukkan ketiga layanan berhasil berjalan, yaitu apache-web berstatus Up, flask-app berstatus Up (healthy), dan proxy berstatus Up dengan port 8080 dan 8443. Selanjutnya, docker compose logs --tail 100 menampilkan proses *startup* Gunicorn, Apache, dan NGINX tanpa masalah. Hasil ini menunjukkan seluruh kontainer berhasil dijalankan dan siap melayani trafik.
 
 ```bash
 docker compose up -d --build
@@ -193,11 +141,9 @@ docker compose logs --tail 100
 
 <img src="../assets/bab-04/image13.jpeg" alt="4.10 Build dan Menjalankan Stack" width="646">
 
-Perintah docker compose ps menunjukkan ketiga layanan berhasil berjalan, yaitu apache-web berstatus Up, flask-app berstatus Up (healthy), dan proxy berstatus Up dengan port 8080 dan 8443.
-
 ## 4.11 Pengujian Cepat
 
-Rangkaian pengujian cepat konektivitas HTTP redirect, HTTPS Apache, API Flask, dan sertifikat TLS:
+Pengujian menunjukkan konfigurasi berjalan sesuai yang diharapkan. Akses HTTP pada port 8080 berhasil dialihkan dengan status 301 ke HTTPS port 8443. Akses HTTPS ke Apache menghasilkan 200 OK dan menampilkan *security headers*, sedangkan akses /api/ berhasil diteruskan ke Flask dengan respons JSON berstatus ok. Endpoint /api/health juga mengembalikan status healthy. Pengujian openssl s_client mengonfirmasi koneksi menggunakan TLSv1.3 dengan cipher TLS_AES_256_GCM_SHA384.
 
 ```bash
 curl -I http://localhost:8080/
@@ -211,34 +157,34 @@ openssl s_client -connect localhost:8443 -servername localhost -brief </dev/null
 
 ## 4.12 Pemeriksaan Isolasi
 
-Memeriksa published port pada host dan memastikan hanya NGINX proxy yang terekspos:
+Kontainer apache-web dan flask-app tidak memiliki pemetaan port ke host sehingga backend tidak dapat diakses secara langsung melalui IP host. Hanya proxy NGINX yang membuka port 127.0.0.1:8080 dan 127.0.0.1:8443 sebagai titik masuk utama. Selain itu, status flask-app yang menunjukkan (healthy) menandakan *healthcheck* berhasil memastikan aplikasi dalam kondisi siap.
 
 ```bash
 docker compose ps
 ```
 
-<img src="../assets/bab-04/image15.jpeg" alt="4.12 Pemeriksaan Isolasi Port" width="646">
+<img src="../assets/bab-04/image15.jpeg" alt="4.12 Pemeriksaan Isolasi" width="646">
 
-Memeriksa konfigurasi jaringan terisolasi `bab-4_web-net`:
+Docker Compose membuat jaringan khusus bab-4_web-net menggunakan *driver* bridge dengan subnet 172.22.0.0/16 dan gateway 172.22.0.1. Ketiga kontainer, yaitu proxy, apache-web, dan flask-app, berada dalam jaringan virtual yang sama sehingga dapat berkomunikasi secara internal. Segmentasi ini membatasi komunikasi langsung dari kontainer yang berada di luar jaringan tersebut.
 
 ```bash
 docker network inspect bab-4_web-net
 ```
 
-<img src="../assets/bab-04/image16.jpeg" alt="4.12 Pemeriksaan Network Inspect" width="646">
+<img src="../assets/bab-04/image16.jpeg" alt="4.12 Pemeriksaan Isolasi" width="646">
 
-Memverifikasi komunikasi internal antar kontainer menggunakan hostname Docker:
+Pengujian wget dari dalam kontainer proxy berhasil mengakses apache-web dan flask-app:5000/health menggunakan nama layanan. Respons yang diterima menunjukkan Docker DNS berhasil menerjemahkan hostname tersebut ke IP internal masing-masing. Hasil ini juga membuktikan NGINX dapat berkomunikasi dengan backend melalui jaringan internal tanpa perlu mengekspos port Apache dan Flask ke host.
 
 ```bash
 docker compose exec proxy wget -qO- http://apache-web/
 docker compose exec proxy wget -qO- http://flask-app:5000/health
 ```
 
-<img src="../assets/bab-04/image17.jpeg" alt="4.12 Pengujian Akses Internal via Wget" width="646">
+<img src="../assets/bab-04/image17.jpeg" alt="4.12 Pemeriksaan Isolasi" width="646">
 
 ## 4.13 Log
 
-Pemeriksaan pencatatan log pada proxy, backend, dan file access log hasil bind mount:
+Log NGINX menunjukkan proses inisialisasi berjalan normal hingga muncul pesan Configuration complete; ready for start up, yang menandakan konfigurasi berhasil diproses tanpa *syntax error*. Pada Apache terdapat peringatan AH00558 karena ServerName belum ditentukan secara global, tetapi layanan tetap berjalan normal. Log Apache juga menunjukkan alamat 172.22.0.4 sebagai sumber permintaan, yaitu IP internal kontainer proxy, sehingga membuktikan trafik diteruskan melalui NGINX dan bukan diakses langsung. Pada Flask, Gunicorn berhasil berjalan pada port internal 5000 dengan 2 worker process sesuai konfigurasi Dockerfile. Selain itu, tidak ditemukan error kritis pada log NGINX. Log yang tersimpan pada ./logs/nginx/ di host juga membuktikan *bind mount* berjalan dengan baik sehingga aktivitas layanan dapat dipantau dan digunakan untuk kebutuhan audit.
 
 ```bash
 docker compose logs proxy
@@ -252,9 +198,11 @@ tail -n 20 logs/nginx/error.log
 
 ## 4.14 Troubleshooting Cepat
 
-### 4.14.1 Cek Semua Container
+Tahap troubleshooting dilakukan untuk memastikan setiap service pada Docker Compose berjalan dengan baik. Pemeriksaan dimulai dengan melihat status seluruh container menggunakan perintah docker compose ps. Dari hasil pemeriksaan terlihat bahwa container proxy, apache-web, dan flask-app telah berjalan. Container Flask juga menunjukkan status healthy, sehingga healthcheck aplikasi dapat berjalan dengan baik.
 
-Pemeriksaan status seluruh layanan Docker Compose:
+### 4.14.1 Cek semua container
+
+Pada pemeriksaan Nginx, digunakan perintah untuk melihat konfigurasi dan log container. Hasil pemeriksaan menunjukkan bahwa konfigurasi Nginx dapat dimuat dengan baik dan tidak terdapat kesalahan konfigurasi yang menyebabkan container berhenti.
 
 ```bash
 docker compose ps
@@ -262,87 +210,94 @@ docker compose ps
 
 <img src="../assets/bab-04/image19.jpeg" alt="4.14.1 Cek semua container" width="646">
 
-### 4.14.2 Pemeriksaan Log Nginx
+### 4.14.2 Kalau Nginx bermasalah
 
-Memeriksa log kontainer proxy NGINX untuk memastikan tidak terdapat kesalahan konfigurasi:
+Selanjutnya dilakukan pemeriksaan terhadap Apache. Log Apache menunjukkan bahwa web server berhasil dijalankan dan dapat menerima request. Halaman yang ditampilkan juga menunjukkan bahwa Apache dapat diakses melalui jaringan internal Docker.
 
 ```bash
 docker compose logs proxy
+docker compose exec proxy nginx -t
 ```
 
-<img src="../assets/bab-04/image20.jpeg" alt="4.14.2 Log Proxy Nginx" width="646">
+<img src="../assets/bab-04/image20.jpeg" alt="4.14.2 Kalau Nginx bermasalah" width="646">
 
-### 4.14.3 Pemeriksaan Log Apache
+### 4.14.3 Kalau Apache bermasalah
 
-Memeriksa log web server Apache:
+Pemeriksaan berikutnya dilakukan terhadap Flask menggunakan log container. Dari hasil log terlihat bahwa aplikasi Flask berhasil dijalankan menggunakan Gunicorn dan mendengarkan pada port 5000. Endpoint /health juga dapat digunakan untuk melakukan pengecekan kondisi aplikasi.
 
 ```bash
 docker compose logs apache-web
 ```
 
-<img src="../assets/bab-04/image21.jpeg" alt="4.14.3 Log Apache" width="646">
+<img src="../assets/bab-04/image21.jpeg" alt="4.14.3 Kalau Apache bermasalah" width="646">
 
-### 4.14.4 Pemeriksaan Log Flask
+### 4.14.4 Kalau Flask bermasalah
 
-Memeriksa log aplikasi backend Flask dan server Gunicorn:
+Pada bagian perbaikan Flask, dilakukan pemeriksaan terhadap command yang digunakan untuk menjalankan aplikasi. Langkah ini digunakan untuk memastikan Flask dapat dijalankan dengan konfigurasi yang benar sehingga healthcheck dapat memberikan status healthy.
 
 ```bash
 docker compose logs flask-app
 ```
 
-<img src="../assets/bab-04/image22.jpeg" alt="4.14.4 Log Flask Gunicorn" width="646">
+<img src="../assets/bab-04/image22.jpeg" alt="4.14.4 Kalau Flask bermasalah" width="646">
 
-### 4.14.5 Pengujian Komunikasi Nginx ke Apache
-
-Menguji konektivitas internal dari kontainer proxy ke Apache menggunakan wget:
+Selanjutnya dilakukan pengujian komunikasi antara Nginx dengan Apache. Pengujian dilakukan dari container proxy menggunakan wget menuju http://apache-web/. Hasil pengujian menampilkan halaman HTML Apache, sehingga dapat dibuktikan bahwa Nginx atau container proxy dapat mengakses Apache menggunakan **nama service apache-web** melalui network Docker.
 
 ```bash
 docker compose exec proxy wget -qO- http://apache-web/
 ```
 
-<img src="../assets/bab-04/image23.jpeg" alt="4.14.5 Komunikasi Nginx ke Apache" width="646">
+<img src="../assets/bab-04/image23.jpeg" alt="4.14.4 Kalau Flask bermasalah" width="646">
 
-### 4.14.6 Pengujian Komunikasi Nginx ke Flask
+### 4.14.5 Pengujian komunikasi Nginx dengan Apache
 
-Menguji endpoint kesehatan Flask dari kontainer proxy:
+Komunikasi Nginx dengan Flask juga diperiksa menggunakan endpoint /health. Hasil response menunjukkan: "status":"healthy". Hasil tersebut menunjukkan bahwa container proxy dapat berkomunikasi dengan backend Flask melalui port internal 5000.
 
 ```bash
 docker compose exec proxy wget -qO- http://flask-app:5000/health
 ```
 
-<img src="../assets/bab-04/image24.jpeg" alt="4.14.6 Komunikasi Nginx ke Flask" width="646">
+<img src="../assets/bab-04/image24.jpeg" alt="4.14.5 Pengujian komunikasi Nginx dengan Apache" width="646">
 
-### 4.14.7 Pemeriksaan Koneksi HTTPS dan Handshake TLS
+### 4.14.6 Pengujian komunikasi Nginx dengan Flask
 
-Menguji negosiasi TLS dan validasi sertifikat:
+Untuk memastikan HTTPS berjalan, dilakukan pemeriksaan menggunakan openssl s_client. Hasil menunjukkan bahwa koneksi berhasil dibangun dengan TLS 1.3 dan cipher yang digunakan adalah TLS_AES_256_GCM_SHA384. Pada hasil tersebut juga terlihat keterangan self-signed certificate. Hal ini sesuai dengan penggunaan sertifikat TLS self-signed pada praktikum.
 
 ```bash
 openssl s_client -connect localhost:8443 -servername localhost -brief </dev/null
 ```
 
-<img src="../assets/bab-04/image25.jpeg" alt="4.14.7 Pengujian Handshake TLS" width="646">
+<img src="../assets/bab-04/image25.jpeg" alt="4.14.6 Pengujian komunikasi Nginx dengan Flask" width="646">
 
-### 4.14.8 Pemeriksaan Published Port Host
+### 4.14.7 Kalau HTTPS bermasalah
 
-Memeriksa port binding pada host untuk memastikan port backend tidak bocor:
+Pemeriksaan port juga dilakukan menggunakan docker ps --format. Hasilnya menunjukkan bahwa port yang dipublikasikan ke host adalah port milik **proxy**, yaitu 8080 dan 8443, sedangkan Apache dan Flask hanya menggunakan port internal Docker. Hal ini menunjukkan bahwa backend tidak diekspos secara langsung ke host.
 
 ```bash
-docker ps --format "table {{.Names}}\t{{.Ports}}"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
-<img src="../assets/bab-04/image26.jpeg" alt="4.14.8 Pemeriksaan Port Format" width="646">
+<img src="../assets/bab-04/image26.jpeg" alt="4.14.7 Kalau HTTPS bermasalah" width="646">
 
-### 4.14.9 Pengujian Akses Endpoint API
+### 4.14.8 Kalau port tidak bisa diakses
 
-Menguji akses endpoint `/api/` melalui HTTPS NGINX:
+Selanjutnya dilakukan pemeriksaan terhadap endpoint /api/. Request menggunakan curl ke https://localhost:8443/api/ menghasilkan response JSON dari Flask. Response tersebut menunjukkan bahwa API berhasil diteruskan melalui Nginx menuju service flask-app.
 
 ```bash
 curl -k https://localhost:8443/api/
 ```
 
-<img src="../assets/bab-04/image27.jpeg" alt="4.14.9 Respon API JSON" width="646">
+<img src="../assets/bab-04/image27.jpeg" alt="4.14.8 Kalau port tidak bisa diakses" width="646">
 
-<img src="../assets/bab-04/image28.jpeg" alt="4.14.9 Ringkasan Troubleshooting" width="646">
+### 4.14.9 Kalau /api/ tidak bekerja
+
+Dari rangkaian troubleshooting tersebut dapat diketahui bahwa setiap service dapat berjalan dan berkomunikasi sesuai dengan konfigurasi. Troubleshooting pada PDF memang mencakup pemeriksaan container, Nginx, Apache, Flask, komunikasi Nginx–Apache, komunikasi Nginx–Flask, HTTPS, published port, dan endpoint /api/.
+
+```bash
+curl -k -i https://localhost:8443/api/health
+```
+
+<img src="../assets/bab-04/image28.jpeg" alt="4.14.9 Kalau /api/ tidak bekerja" width="646">
 
 ## 4.15 Checklist PASS
 
@@ -359,6 +314,8 @@ curl -k https://localhost:8443/api/
 
 ### 4.15.1 Validasi Konfigurasi Docker Compose
 
+Validasi konfigurasi dilakukan menggunakan docker compose config. Hasil pemeriksaan menunjukkan pesan PASS: docker compose config valid. Hal ini menunjukkan bahwa file Compose dapat diproses tanpa menghasilkan kesalahan konfigurasi.
+
 ```bash
 docker compose config
 ```
@@ -366,6 +323,8 @@ docker compose config
 <img src="../assets/bab-04/image29.jpeg" alt="4.15.1 Validasi Konfigurasi Docker Compose" width="646">
 
 ### 4.15.2 Pemeriksaan Status Flask
+
+Pemeriksaan dilakukan menggunakan docker compose ps flask-app. Pada hasil tersebut terlihat bahwa container flask-app berada pada kondisi healthy. Status ini menunjukkan bahwa container Flask aktif dan healthcheck yang telah dikonfigurasi berhasil.
 
 ```bash
 docker compose ps flask-app
@@ -375,6 +334,15 @@ docker compose ps flask-app
 
 ### 4.15.3 Pengujian Redirect HTTP
 
+Pengujian dilakukan menggunakan curl terhadap http://localhost:8080/. Hasil response menunjukkan:
+
+```http
+HTTP/1.1 301 Moved Permanently
+Location: https://localhost:8443/
+```
+
+Hasil tersebut membuktikan bahwa request HTTP pada port 8080 diarahkan secara permanen menuju HTTPS pada port 8443.
+
 ```bash
 curl -I http://localhost:8080/
 ```
@@ -382,6 +350,10 @@ curl -I http://localhost:8080/
 <img src="../assets/bab-04/image31.jpeg" alt="4.15.3 Pengujian Redirect HTTP" width="646">
 
 ### 4.15.4 Pengujian HTTPS dan Apache
+
+Pengujian selanjutnya dilakukan terhadap https://localhost:8443/. Response yang diperoleh memiliki status HTTP/1.1 200 OK dan menampilkan halaman HTML Apache dengan judul Index of **/**.
+
+Hal ini membuktikan bahwa Nginx berhasil menerima request HTTPS dan meneruskannya ke Apache sebagai backend.
 
 ```bash
 curl -k -i https://localhost:8443/
@@ -391,6 +363,8 @@ curl -k -i https://localhost:8443/
 
 ### 4.15.5 Pengujian API Flask
 
+Response ini membuktikan bahwa request /api/ berhasil diteruskan oleh Nginx menuju service Flask. Informasi forwarded_proto yang bernilai https juga menunjukkan bahwa request berasal dari akses HTTPS.
+
 ```bash
 curl -k https://localhost:8443/api/
 ```
@@ -398,6 +372,8 @@ curl -k https://localhost:8443/api/
 <img src="../assets/bab-04/image33.jpeg" alt="4.15.5 Pengujian API Flask" width="646">
 
 ### 4.15.6 Pengujian TLS
+
+Pengujian TLS dilakukan menggunakan openssl s_client terhadap port 8443. Pada hasil terlihat bahwa sertifikat yang digunakan merupakan self-signed certificate. Dengan demikian, HTTPS pada port 8443 berhasil menggunakan protokol TLS.
 
 ```bash
 openssl s_client -connect localhost:8443 -servername localhost -brief </dev/null
@@ -407,13 +383,21 @@ openssl s_client -connect localhost:8443 -servername localhost -brief </dev/null
 
 ### 4.15.7 Pemeriksaan Published Port
 
+Pemeriksaan published port dilakukan untuk memastikan hanya Nginx yang dapat diakses dari host. Hasil menunjukkan:
+
 ```bash
-docker compose ps
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
 <img src="../assets/bab-04/image35.jpeg" alt="4.15.7 Pemeriksaan Published Port" width="646">
 
+Dari hasil tersebut dapat dilihat bahwa Apache dan Flask hanya memiliki port internal, sedangkan port host 8080 dan 8443 dipublikasikan oleh proxy. Dengan demikian, akses dari host dilakukan melalui Nginx.
+
 ### 4.15.8 Pemeriksaan Access Log Nginx
+
+Pemeriksaan terakhir dilakukan terhadap file logs/nginx/access.log. Hasilnya menunjukkan bahwa request yang dilakukan selama pengujian tercatat pada access log, termasuk request terhadap /, /api/, dan /api/health.
+
+Pada log juga terlihat response 301 untuk request HTTP yang diarahkan ke HTTPS dan response 200 untuk request yang berhasil dilayani. Hal ini menunjukkan bahwa aktivitas request telah tercatat pada sisi Nginx.
 
 ```bash
 tail -n 20 logs/nginx/access.log

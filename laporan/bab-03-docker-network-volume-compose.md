@@ -72,7 +72,7 @@ nano docker-compose.yml
 
 ### 3.3.1 Service Discovery pada User-Defined Bridge (my-net)
 
-Pengujian service discovery otomatis menggunakan jaringan kustom `my-net` antar container Alpine:
+Perintah berikut dijalankan untuk membuat user-defined bridge network `my-net`, menjalankan container `box1`, dan melakukan pengujian ping menggunakan service discovery name:
 
 ```bash
 docker network create my-net
@@ -88,7 +88,7 @@ Perintah pada Gambar 3.1 membuktikan bahwa container terpisah yang terhubung pad
 
 ### 3.3.2 Persistensi Named Volume Setelah Container Removal
 
-Pengujian persistensi data pada Named Volume `data-vol` saat container dihapus dan diakses kembali oleh container baru:
+Perintah berikut digunakan untuk membuat named volume `data-vol`, menuliskan data ke dalamnya melalui container sementara, menghapus container tersebut, dan membaca kembali data menggunakan container baru:
 
 ```bash
 docker volume create data-vol
@@ -101,11 +101,11 @@ docker run --rm -v data-vol:/app/data alpine cat /app/data/test.txt
 
 *Gambar 2.3 Pembacaan kembali teks Hello Proxmox dari data-vol setelah container vol-test dihapus.*
 
-Data yang ditulis ke `/app/data/test.txt` berada di direktori khusus host (`/var/lib/docker/volumes/`). Saat container vol-test di-*remove* secara paksa, siklus hidup volume tetap aman dan datanya dapat diakses container baru.
+Data yang ditulis ke /app/data/test.txt berada di direktori khusus host (/var/lib/docker/volumes/). Saat container vol-test di-*remove* secara paksa, siklus hidup volume tetap aman dan datanya dapat diakses container baru.
 
 ### 3.3.3 Live Development Hot-Reloading via Bind Mount
 
-Pengujian mekanisme bind mount untuk hot-reloading kode / dokumen web tanpa perlu membuild ulang image:
+Perintah berikut menyiapkan direktori bind mount lokal pada host, menjalankan web server Nginx yang mengarah ke direktori tersebut, menguji curl, lalu mengubah file di host dan menguji ulang respons curl:
 
 ```bash
 mkdir -p ~/html-bind && echo "Versi 1" > ~/html-bind/index.html
@@ -119,11 +119,11 @@ curl http://localhost:8090
 
 *Gambar 3.3 Respon curl berubah seketika menjadi Versi 2 Update saat file index.html di host dimodifikasi.*
 
-Bind Mount mengikat direktori host `~/html-bind` secara langsung ke web root Nginx `/usr/share/nginx/html`. Perubahan kode di host langsung berdampak pada respon HTTP container tanpa perlu rebuild image.
+Bind Mount mengikat direktori host ~/html-bind secara langsung ke web root Nginx /usr/share/nginx/html. Perubahan kode di host langsung berdampak pada respon HTTP container tanpa perlu rebuild image.
 
 ### 3.3.4 Pengujian Storage Volatile / In-Memory (tmpfs)
 
-Pengujian storage sementara dalam memori RAM (tmpfs) yang hilang otomatis saat container direstart:
+Perintah berikut menjalankan container dengan tmpfs mount pada `/app/temp`, menulis berkas rahasia, lalu me-restart container untuk menguji sifat penyimpanan in-memory (volatile):
 
 ```bash
 docker run -d --name tmpfs-test --tmpfs /app/temp alpine sleep 3600
@@ -137,11 +137,11 @@ docker exec tmpfs-test cat /app/temp/secret.txt
 
 *Gambar 3.4 File secret.txt terhapus setelah container tmpfs-test di-restart.*
 
-Storage tmpfs dialokasikan pada RAM host. Ketika container di-restart, memori dibebaskan sehingga seluruh file di dalam mount point `/app/temp` terhapus permanen demi keamanan data sensitif.
+Storage tmpfs dialokasikan pada RAM host. Ketika container di-restart, memori dibebaskan sehingga seluruh file di dalam mount point /app/temp terhapus permanen demi keamanan data sensitif.
 
 ### 3.3.5 Multi-Container Deployment & Healthcheck Verification
 
-Deployment seluruh stack multi-container menggunakan Docker Compose dan verifikasi kondisi kesehatan kontainer:
+Perintah berikut mengeksekusi stack multi-container Docker Compose di latar belakang dan memeriksa status operasional serta kondisi kesehatan setiap container:
 
 ```bash
 docker compose up -d
@@ -162,3 +162,26 @@ Eksekusi command pada Gambar 3.5 berhasil menjalankan ketiga layanan. Fitur Heal
 | 2   | Data di named volume tetap ada setelah container dihapus.       | \[✔\] PASSED | Gambar 3.2: Data log & string 'Hello Proxmox' di data-vol dibaca utuh oleh container baru. |
 | 3   | Bind mount menunjukkan perubahan file host tanpa rebuild.       | \[✔\] PASSED | Gambar 3.3: Output curl menampilkan 'Versi 2 Update' secara real-time dari host.           |
 | 4   | tmpfs kehilangan data setelah container restart.                | \[✔\] PASSED | Gambar 3.4: File secret.txt hilang total dari RAM setelah perintah restart.                |
+| 5   | Compose stack berjalan dan API health menampilkan status db.    | \[✔\] PASSED | Gambar 3.5: Seluruh container aktif dan database bernilai (healthy).                       |
+
+### 3.3.7 Evaluasi dan Latihan Mandiri
+
+**1. Keunggulan User-Defined Bridge**
+
+*User-defined bridge* jauh lebih baik daripada *default bridge* untuk aplikasi *multi-container* karena menyediakan fitur *Automatic DNS Resolution*, sehingga container dapat saling berkomunikasi cukup menggunakan nama layanannya tanpa mengandalkan alamat IP yang dinamis. Selain itu, *user-defined bridge* memberikan isolasi jaringan yang lebih ketat karena hanya container dalam jaringan yang sama yang dapat terhubung, serta memungkinkan pengembang untuk menghubungkan atau melepas container dari jaringan secara langsung tanpa perlu melakukan *restart*.
+
+**2. Risiko Keamanan Bind Mount**
+
+Risiko utama dari *bind mount* adalah terpaparnya direktori dan berkas sensitif dari sistem host secara langsung ke dalam container. Jika container berhasil diretas atau dijalankan menggunakan akses *root*, penyerang dapat membaca, mengubah, atau menghapus berkas penting pada mesin host (seperti berkas konfigurasi sistem /etc atau kunci SSH). Hal ini dapat menyebabkan pembobolan batas isolasi (*container escape*) dan pengambilalihan kendali penuh atas server host.
+
+**3. Perbedaan docker compose down dan docker compose down -v**
+
+Perbedaan dasarnya terletak pada penanganan data *volume*. Perintah docker compose down hanya menghentikan serta menghapus container dan jaringan yang dibuat oleh Compose, tetapi tetap membiarkan *named volume* beserta datanya utuh di host. Sebaliknya, perintah docker compose down -v menghentikan dan menghapus container, jaringan, sekaligus menghapus seluruh named volume yang terdaftar pada file docker-compose.yml, sehingga seluruh data persisten (seperti basis data) akan terhapus secara permanen.
+
+**4. Penggunaan depends_on dengan healthcheck**
+
+Penggunaan depends_on yang dikombinasikan dengan healthcheck (condition: service_healthy) lebih tepat digunakan ketika suatu layanan membutuhkan layanan lain untuk benar-benar siap menerima transaksi data, bukan sekadar dalam status menyala. Sebagai contoh, aplikasi *backend* yang membutuhkan database; depends_on biasa hanya menunggu proses container database mulai berjalan, sedangkan kombinasi healthcheck memastikan database telah selesai melakukan inisialisasi dan siap menerima koneksi sebelum aplikasi *backend* mulai dinyalakan, sehingga terhindar dari error *connection refused*.
+
+**5. Strategi Backup Volume Database Produksi**
+
+Strategi *backup volume* database produksi dapat dilakukan dengan dua metode utama. Pertama, menggunakan skrip otomatis (*cron job*) yang menjalankan utilitas *dump* bawaan database (seperti pg_dump atau mysqldump) melalui perintah docker exec tanpa menghentikan layanan. Kedua, dengan metode *cold backup*, yaitu menghentikan sementara container database, lalu menjalankan *helper container* sementara yang melakukan *mount* pada *volume* database untuk mengarsipkan direktori data ke dalam file kompresi (.tar.gz). Seluruh berkas cadangan tersebut selanjutnya harus langsung dikirim dan disimpan ke lokasi penyimpanan terpisah seperti *Cloud Storage* (S3) untuk mengantisipasi kegagalan perangkat keras pada server utama.
