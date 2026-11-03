@@ -31,6 +31,7 @@
 | 4 | Nginx, Apache, Flask, dan TLS dengan Docker Compose | [📄 Buka Laporan](laporan/bab-04-nginx-apache-tls-docker-compose.md) |
 | 5 | PostgreSQL, pgAdmin, Volume, Backup, dan Restore | [📄 Buka Laporan](laporan/bab-05-postgresql-pgadmin-volume-backup-restore.md) |
 | 6 | Centralized Logging dengan Fluent Bit dan PostgreSQL | [📄 Buka Laporan](laporan/bab-06-centralized-logging-fluent-bit-postgresql.md) |
+| 6 (Studi Kasus) | Centralized Logging & Incident Response PMB DevSecOps Laboratory | [📄 Buka Laporan](laporan/bab-06-studi-kasus-pmb-devsecops-lab.md) |
 
 ---
 
