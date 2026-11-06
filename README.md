@@ -74,4 +74,4 @@ Seluruh credential, password, dan token yang muncul dalam screenshot bersifat **
 
 ---
 
-## PS. Vernanda Mulia Hamonangan Manurung
+## P.S. Vernanda Mulia Hamonangan Manurung
