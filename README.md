@@ -19,6 +19,7 @@
   <img src="https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana">
   <img src="https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" alt="Prometheus">
   <img src="https://img.shields.io/badge/Trivy-1B365D?style=for-the-badge&logo=trivy&logoColor=white" alt="Trivy">
+  <img src="https://img.shields.io/badge/Keycloak-ECEFF1?style=for-the-badge&logo=keycloak&logoColor=000000" alt="Keycloak">
 </p>
 
 ---
@@ -36,6 +37,7 @@
 | 6 (Studi Kasus) | Centralized Logging & Incident Response PMB DevSecOps Laboratory | [📄 Buka Laporan](laporan/bab-06-studi-kasus-pmb-devsecops-lab.md) |
 | 7 | Monitoring Resource dengan Prometheus, cAdvisor, Node Exporter, dan Grafana | [📄 Buka Laporan](laporan/bab-07-monitoring-prometheus-cadvisor-node-exporter-grafana.md) |
 | 8 | Hardening Container, Secrets, Trivy, dan Private Registry | [📄 Buka Laporan](laporan/bab-08-hardening-container-secrets-trivy-private-registry.md) |
+| 9 | IAM, OIDC, PKCE, dan RBAC dengan Keycloak | [📄 Buka Laporan](laporan/bab-09-iam-oidc-pkce-rbac-keycloak.md) |
 
 ---
 
@@ -53,6 +55,7 @@
 | **Prometheus & cAdvisor** | Sistem monitoring metrik deret waktu (*time-series*) dan resource container/host |
 | **Trivy** | Pemindai kerentanan (*vulnerability*), miskonfigurasi, *secrets*, dan pembuat SBOM (*Software Bill of Materials*) |
 | **Docker Private Registry** | Registry image container privat lokal terisolasi dengan TLS dan autentikasi htpasswd |
+| **Keycloak** | Solusi Identity and Access Management (IAM) open-source untuk autentikasi OpenID Connect (OIDC), OAuth 2.0 PKCE, dan otorisasi RBAC |
 | **Git & GitHub** | Sistem kontrol versi dan platform kolaborasi kode |
 
 ---
